@@ -1,0 +1,15 @@
+Audio Corpus Recorder 
+=====================
+
+Records a corpus by promting the user with the sentence to be read. It can
+capture up to four michophone sources.
+
+For more documentation run::
+
+    make html
+
+and open::
+    
+    _build/html/index.html
+
+or simply read the index.rst file
