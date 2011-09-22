@@ -152,23 +152,25 @@ class MainWindow(gtk.Window):
             self.queues['src%d'%mic]=queue
             self.recorder.add(queue)
 
-            if mic==self.monitor:
-                # If this is the mic to be monitor
-                tee = gst.element_factory_make("tee","tee")
-                self.recorder.add(tee)
-                alsasink = gst.element_factory_make("alsasink","alsa-sink")
-                self.recorder.add(alsasink)
-                extra_queue1 = gst.element_factory_make("queue", "soundcard")
-                extra_queue2 = gst.element_factory_make("queue", "normal")
-                gst.element_link_many(queue,tee)
-                self.recorder.add(extra_queue1)
-                self.recorder.add(extra_queue2)
-                extra_queue1.link(alsasink)
-                tee.link(extra_queue1)
-                gst.element_link_many(extra_queue2, converter, wav, fileout)
-                tee.link(extra_queue2)
-            else:
-                gst.element_link_many(queue, converter, wav, fileout)
+            # Code for adding a monitor
+            #if mic==self.monitor:
+            # If this is the mic to be monitor
+            #    tee = gst.element_factory_make("tee","tee")
+            #    self.recorder.add(tee)
+            #    alsasink = gst.element_factory_make("alsasink","alsa-sink")
+            #    self.recorder.add(alsasink)
+            #    extra_queue1 = gst.element_factory_make("queue", "soundcard")
+            #    extra_queue2 = gst.element_factory_make("queue", "normal")
+            #    gst.element_link_many(queue,tee)
+            #    self.recorder.add(extra_queue1)
+            #    self.recorder.add(extra_queue2)
+            #    extra_queue1.link(alsasink)
+            #    tee.link(extra_queue1)
+            #    gst.element_link_many(extra_queue2, converter, wav, fileout)
+            #    tee.link(extra_queue2)
+            #else:
+            #    gst.element_link_many(queue, converter, wav, fileout)
+            gst.element_link_many(queue, converter, wav, fileout)
             self.ofiles.append(fileout)
 
 
@@ -180,7 +182,7 @@ class MainWindow(gtk.Window):
         if self.verb:
             print MSG
 
-    def __init__(self,outdir=None,filename=None,nmics=4,verbose=False,monitor=0,client=False,bind=('127.0.0.1',5000)):
+    def  __init__(self,outdir=None,filename=None,nmics=4,verbose=False,monitor=0,client=False,bind=('127.0.0.1',5000),full=False):
         # Number of microphones
         self.nmics=nmics
         # Verbose mode
@@ -198,7 +200,7 @@ class MainWindow(gtk.Window):
         # Utt to display
         self.numUtt=0
         # If stop button present
-        self.stop_state=False
+        self.stop_state=0
         # Rewriting files flag
         self.rewrite=False
 
@@ -332,9 +334,7 @@ class MainWindow(gtk.Window):
             self.sckt.connect(bind)
         else:
             # Ventana auxiliar
-            self.sentence=SWindow.SentenceW()
-
-
+            self.sentence=SWindow.SentenceW(full)
             
     def status_0(self):
         '''Default status'''
@@ -382,6 +382,27 @@ class MainWindow(gtk.Window):
      
         else:
             self.status_0()
+
+    def status_pause(self):
+            '''Status for recording'''
+            self.actiongroup.get_action("open").set_sensitive(False)
+            self.actiongroup.get_action("sel_dir").set_sensitive(False)
+            self.actiongroup.get_action("save").set_sensitive(False)
+            self.actiongroup.get_action("save_as").set_sensitive(False)
+            self.actiongroup.get_action("close").set_sensitive(False)
+            self.actiongroup.get_action("quit").set_sensitive(False)
+            self.actiongroup.get_action("go_utt").set_sensitive(False)
+            self.actiongroup.get_action("about").set_sensitive(False)
+            self.actiongroup.get_action("first").set_sensitive(False)
+            self.actiongroup.get_action("previous").set_sensitive(False)
+            self.actiongroup.get_action("next").set_sensitive(False)
+            self.actiongroup.get_action("last").set_sensitive(False)
+            self.actiongroup.get_action("play").set_sensitive(False)
+            self.actiongroup.get_action("stop").set_sensitive(False)
+            self.actiongroup.get_action("record").set_stock_id(gtk.STOCK_MEDIA_RECORD)
+            for i in range(self.nmics):
+                self.actiongroup.get_action("playn%d"%(i+1)).set_sensitive(False)
+ 
 
     def status_recording(self):
             '''Status for recording'''
@@ -436,8 +457,6 @@ class MainWindow(gtk.Window):
         if event.button == 1 and event.type == gtk.gdk._2BUTTON_PRESS:
             self.play(None)
 
-
-                            
 
     # Creates the UI using the accelerators
     def create_UI(self):
@@ -524,48 +543,61 @@ class MainWindow(gtk.Window):
 
     # record
     def record(self, event, data=None):
-        if self.stop_state:
-            self.stop_state=False
+        if self.stop_state==0:
+            self.stop_state=1
+            self.status_pause()
+            if len(self.utts_list) > 0:
+               
+                mic=1
+                for fileout in self.ofiles:
+                    if self.prefix:
+                        location="%s_%02d_mic%02d.wav"%(self.prefix,self.utts_list[self.numUtt][0],mic)
+                    else:
+                        location="%s_%02d_mic%02d.wav"%(self.filename,self.utts_list[self.numUtt][0],mic)
+            
+                    if self.outdir:
+                        location="%s/%s"%(self.outdir,location)
+
+                    if os.path.exists(location):
+                        if not self.rewrite:
+                            msg="You are trying to rewrite this file: "+location+"\n Are you sure you want to do this?"
+
+                            md = gtk.MessageDialog(self, 
+                                            gtk.DIALOG_DESTROY_WITH_PARENT,
+                                            gtk.MESSAGE_QUESTION, 
+                                            gtk.BUTTONS_OK_CANCEL, msg)
+                            md.set_default_response(gtk.RESPONSE_OK)
+                            response=md.run()
+                            md.destroy()
+                            if not int(response) == int(gtk.RESPONSE_OK):
+                                self.status_open()
+                                return False
+                            self.verbose("Setting rewrite mode")
+                            self.rewrite=True
+                    self.verbose("Saving file: %s"%location)
+                    fileout.set_property("location",location)
+                    mic+=1
+
+                sntc=self.utt_label.get_text()
+                if not self.client:
+                    self.sentence.show(sntc)
+                else:
+                    self.sckt.send(sntc)
+ 
+            return 
+        if self.stop_state==2:
+            self.stop_state=0
             self.stop(None)
             return True
-        if len(self.utts_list) > 0:
+
+
+        if self.stop_state==1:
             self.status_recording()
-           
-            mic=1
-            for fileout in self.ofiles:
-                if self.prefix:
-                    location="%s_%02d_mic%02d.wav"%(self.prefix,self.utts_list[self.numUtt][0],mic)
-                else:
-                    location="%s_%02d_mic%02d.wav"%(self.filename,self.utts_list[self.numUtt][0],mic)
-        
-                if self.outdir:
-                    location="%s/%s"%(self.outdir,location)
-
-                if os.path.exists(location):
-                    if not self.rewrite:
-                        msg="You are trying to rewrite this file: "+location+"\n Are you sure you want to do this?"
-
-                        md = gtk.MessageDialog(self, 
-                                        gtk.DIALOG_DESTROY_WITH_PARENT,
-                                        gtk.MESSAGE_QUESTION, 
-                                        gtk.BUTTONS_OK_CANCEL, msg)
-                        md.set_default_response(gtk.RESPONSE_OK)
-                        response=md.run()
-                        md.destroy()
-                        if not int(response) == int(gtk.RESPONSE_OK):
-                            self.status_open()
-                            return False
-                        self.verbose("Setting rewrite mode")
-                        self.rewrite=True
-                self.verbose("Saving file: %s"%location)
-                fileout.set_property("location",location)
-                mic+=1
-            sntc=self.utt_label.get_text()
             if not self.client:
-                self.sentence.show(sntc)
+                self.sentence.record()
             else:
-                self.sckt.send(sntc)
-            self.stop_state=True
+                self.sckt.send(":record")
+            self.stop_state=2
             self.recorder.set_state(gst.STATE_PLAYING)
         return True
 

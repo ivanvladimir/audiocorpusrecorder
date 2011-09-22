@@ -51,9 +51,9 @@ if __name__ == "__main__":
     p.add_option("-n", "--nmics",
             action="store", dest="nmics", type="int",default=1,
             help="Number of microphones to capture from [1]")
-    p.add_option("-m", "--monitor",
-            action="store", dest="monitor", type="int",default=0,
-            help="Microphone to be monitor [0]")
+    p.add_option("-f", "--fullscreen",
+            action="store_true", dest="full",default=False,
+            help="Full screen for sentences")
     p.add_option("-i", "--ip",
             action="store", dest="ip", type="str",default='127.0.0.1',
             help="IP of server [127.0.0.1]")
@@ -84,9 +84,9 @@ if __name__ == "__main__":
                 filename=filename,
                 outdir=opts.outdir,
                 nmics=opts.nmics,
-                monitor=opts.monitor,
                 client=opts.client,
                 bind=bind,
+                full=opts.full,
                 verbose=opts.verbose)
         w.main()
     else:
@@ -133,6 +133,8 @@ if __name__ == "__main__":
                         gtk.main_quit()
                     elif MSG.startswith(':hide'):
                         self.sentence.hide()
+                    elif MSG.startswith(':record'):
+                        self.sentence.record()
                     else:
                         self.sentence.show(MSG)
 
@@ -147,7 +149,7 @@ if __name__ == "__main__":
                         pass
 
 
-       sentence=SWindow.SentenceW()
+       sentence=SWindow.SentenceW(opts.full)
        sckt=SCKT(bind,sentence)
        sckt.start()
        sentence.show("")

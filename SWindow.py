@@ -22,6 +22,14 @@
 # -------------------------------------------------------------------------
 # Based on example from 
 #     Siegfried-Angel Gevatter Pujals <siegfried@gevatter.com>
+# Buttons obtain from:
+# http://www.openclipart.org/people/Anonymous/Anonymous_Button_Green.svg
+# http://www.openclipart.org/people/Anonymous/Anonymous_Button_Red.svg
+#
+# Under CC0 PD Dedication License 
+# http://creativecommons.org/publicdomain/zero/1.0/
+#
+# Thank you to the anonymous contributor
 
 import gtk
 import pango
@@ -32,11 +40,12 @@ class DesktopWindow(gtk.Window):
     # Based upon the composited window example from:
     # http://www.pygtk.org/docs/pygtk/class-gdkwindow.html
     
-    def __init__(self, *args):
+    def __init__(self, full,*args):
         
         gtk.Window.__init__(self, *args)
-        
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DOCK)
+       
+        if not full:
+            self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DOCK)
         self.set_keep_above(True)
         self.set_decorated(False)
         self.stick()
@@ -45,7 +54,7 @@ class DesktopWindow(gtk.Window):
         rgba = self.screen.get_rgba_colormap()
         self.set_colormap(rgba)
         self.set_app_paintable(True)
-        self.resize(400,56)
+
 
     def get_screen_width(self):
         return self.screen.get_width()
@@ -57,36 +66,52 @@ class DesktopWindow(gtk.Window):
 class SentenceW:
     """ An example widget, which shows a quote embedded into your desktop."""
     
-    def __init__(self):
+    def __init__(self,full):
         
-        self.window = DesktopWindow()
+        self.window = DesktopWindow(full)
+
+        if full:
+            self.window.fullscreen()
         
-        self.box = gtk.HBox()
+        self.box = gtk.VBox()
+                
         self.window.add(self.box)
-        
+       
+        self.image = gtk.Image()
+        self.image.set_from_file("imgs/green.png")
+        self.image.show()
+        self.box.pack_start(self.image,expand=False)
+
         self.label = gtk.Label()
         self.label.modify_font(pango.FontDescription("ubuntu 32"))
         self.box.pack_start(self.label, expand=True)
-        
+
+               
     def main(self):
         gtk.gdk.threads_init()
         gtk.main()
 
     def hide(self):
+        self.image.set_from_file("imgs/green.png")
         self.window.hide()
+
+    def record(self):
+        self.image.set_from_file("imgs/red.png")
+        self.image.show()
 
     def show(self,str):
         self.label.set_text(str)
         h2=self.window.get_screen_height()
         w2=self.window.get_screen_width()
         (w,h)=self.window.get_size()
-        self.window.move((w2-w)/2, h2/2-50)
+        self.window.move((w2-w)/2, (h2-h)/2-(h/2))
         self.window.show_all()        
         
 
 if __name__ == "__main__":
-    ints = SentenceW()
+    ints = SentenceW(False)
     sntc=raw_input('>')
     ints.show("This is a test")
+    ints.record()
     ints.main()
 
