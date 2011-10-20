@@ -92,14 +92,16 @@ class SentenceW:
         gtk.main()
 
     def hide(self):
-        self.image.set_from_file("imgs/green.png")
-        self.window.hide()
+        self.image.hide()
+        self.label.set_text("")
+        self.label.show()        
 
     def record(self):
         self.image.set_from_file("imgs/red.png")
         self.image.show()
 
     def show(self,str):
+        self.image.set_from_file("imgs/green.png")
         self.label.set_text(str)
         h2=self.window.get_screen_height()
         w2=self.window.get_screen_width()
