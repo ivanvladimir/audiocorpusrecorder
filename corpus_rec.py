@@ -40,7 +40,7 @@ if __name__ == "__main__":
 
     p = optparse.OptionParser(usage=usage,version=version)
     p.add_option("-o", "--outdir",
-            action="store", dest="outdir", type="str",default=None,
+            action="store", dest="outdir", type="str",default="audio",
             help="Output dir [.]")
     p.add_option("", "--server",
             action="store_true", dest="server", default=False,

@@ -84,6 +84,8 @@ class SentenceW:
 
         self.label = gtk.Label()
         self.label.modify_font(pango.FontDescription("ubuntu 32"))
+        self.label.set_line_wrap(True)
+        self.label.set_justify(gtk.JUSTIFY_CENTER)
         self.box.pack_start(self.label, expand=True)
 
                

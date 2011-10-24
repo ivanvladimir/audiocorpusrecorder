@@ -182,7 +182,7 @@ class MainWindow(gtk.Window):
         if self.verb:
             print MSG
 
-    def  __init__(self,outdir=None,filename=None,nmics=4,verbose=False,monitor=0,client=False,bind=('127.0.0.1',5000),full=False):
+    def  __init__(self,outdir="audio",filename=None,nmics=4,verbose=False,monitor=0,client=False,bind=('127.0.0.1',5000),full=False):
         # Number of microphones
         self.nmics=nmics
         # Verbose mode
@@ -203,6 +203,8 @@ class MainWindow(gtk.Window):
         self.stop_state=0
         # Rewriting files flag
         self.rewrite=False
+        # Dir audio dir create flag
+        self.audiodir=False
 
         # Variables
         gtk.Window.__init__(self)
@@ -556,7 +558,13 @@ class MainWindow(gtk.Window):
                         location="%s_%02d_mic%02d.wav"%(self.filename,self.utts_list[self.numUtt][0],mic)
             
                     if self.outdir:
-                        location="%s/%s"%(self.outdir,location)
+                        location="%s/%s/%s"%(self.outdir,self.prefix,location)
+                        if not os.path.exists(location) and not self.audiodir:
+                            try:
+                                os.mkdir("%s/%s"%(self.outdir,self.prefix))
+                            except OSError:
+                                pass
+                        self.audiodir=True
 
                     if os.path.exists(location):
                         if not self.rewrite:
@@ -622,9 +630,10 @@ class MainWindow(gtk.Window):
                     location="%s_%02d_mic%02d.wav"%(self.filename,self.utts_list[self.numUtt][0],mic)
 
             if self.outdir:
-                location="%s/%s"%(self.outdir,location)
+                location="%s/%s/%s"%(self.outdir,self.prefix,location)
+                location=os.path.abspath(location)
             else:
-                location="%s/%s"%(os.getcwd(),location)
+                location="%s/%s/%s"%(os.getcwd(),self.prefix,location)
 
             self.verbose('Playing file: %s'%location)
 
@@ -640,7 +649,7 @@ class MainWindow(gtk.Window):
                     self.status_open()
                     return False
 
-            self.stop_state=True                   
+            self.stop_state=True
             self.player.set_property("uri", "file://" + location)
             self.player.set_state(gst.STATE_PLAYING)
 
@@ -660,10 +669,12 @@ class MainWindow(gtk.Window):
             else:
                     location="%s_%02d_mic%02d.wav"%(self.filename,self.utts_list[self.numUtt][0],self.monitor+1)
 
+            print ">>>>",self.outdir
             if self.outdir:
-                location="%s/%s"%(self.outdir,location)
+                location="%s/%s/%s"%(self.outdir,self.prefix,location)
+                location=os.path.abspath(location)
             else:
-                location="%s/%s"%(os.getcwd(),location)
+                location="%s/%s/%s"%(os.getcwd(),self.prefix,location)
 
             self.verbose('Playing file: %s'%location)
 
@@ -762,7 +773,7 @@ class MainWindow(gtk.Window):
             self.file_select.hide()
             self.filename=self.file_select.get_filename()
             self.prefix=os.path.splitext(os.path.basename(self.filename))[0]
-
+            self.audiodir=False
             return self.file_select_ok(None)
         else:
             self.file_select.hide()
