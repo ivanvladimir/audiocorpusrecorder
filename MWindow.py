@@ -210,6 +210,11 @@ class MainWindow(gtk.Window):
         self.audiodir=False
         # Checking if jack up
         self.jack=self.check_jack()
+        if monitor:
+            self.connect_flag=False
+        else:
+            self.connect_flag=True
+
      
         # Variables
         gtk.Window.__init__(self)
@@ -332,7 +337,8 @@ class MainWindow(gtk.Window):
 
         self.status_0()
 
-       
+        self.connected(None)
+
         if filename:
             self.file_select_ok(None)
             self.prefix=os.path.splitext(os.path.basename(self.filename))[0]
@@ -397,7 +403,7 @@ class MainWindow(gtk.Window):
     def status_jack(self):
     	if self.jack:
                 self.actiongroup.get_action("connect").set_sensitive(True)
-                if self.connect:
+                if not self.connect_flag:
                     self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_DISCONNECT)
                 else:
                     self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_CONNECT)
@@ -467,8 +473,8 @@ class MainWindow(gtk.Window):
             self.actiongroup.get_action("record").set_sensitive(False)
             self.actiongroup.get_action("stop").set_sensitive(True)
             self.actiongroup.get_action("play").set_stock_id(gtk.STOCK_MEDIA_STOP)
-            if self.connect:
-		self.connected()
+            if self.connect_flag:
+                self.connected(None)
             self.actiongroup.get_action("connect").set_sensitive(False)
             for i in range(self.nmics):
                 self.actiongroup.get_action("playn%d"%(i+1)).set_sensitive(True)
@@ -692,18 +698,18 @@ class MainWindow(gtk.Window):
 
     def connected(self, event, data=None):
         if self.jack:
-            if self.connect:
+            if self.connect_flag:
                 p=Popen(['jack_disconnect','system:capture_1','system:playback_1'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
                 p=Popen(['jack_disconnect','system:capture_1','system:playback_2'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
-		self.connect=False
+                self.connect_flag=False
             else:
                 p=Popen(['jack_connect','system:capture_1','system:playback_1'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
                 p=Popen(['jack_connect','system:capture_1','system:playback_2'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
-		self.connect=True
+                self.connect_flag=True
 	self.status_jack()
 
     def play(self, event, data=None):
