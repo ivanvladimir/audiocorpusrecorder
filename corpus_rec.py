@@ -49,7 +49,7 @@ if __name__ == "__main__":
             action="store_true", dest="client", default=False,
             help="Runs client mode")
     p.add_option("-n", "--nmics",
-            action="store", dest="nmics", type="int",default=1,
+            action="store", dest="nmics", type="int",default=4,
             help="Number of microphones to capture from [1]")
     p.add_option("-f", "--fullscreen",
             action="store_true", dest="full",default=False,

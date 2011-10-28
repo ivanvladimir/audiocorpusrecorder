@@ -1,5 +1,5 @@
 #!/bin/bash
-IP=127.0.0.1
+IP=192.168.1.76
 PORT=5000
 
 python corpus_rec.py -n 4 --client -i $IP -p $PORT

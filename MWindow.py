@@ -111,7 +111,7 @@ class MainWindow(gtk.Window):
              ('record', gtk.STOCK_MEDIA_RECORD, None, '<Ctrl>r', None, self.record),
              ('play', gtk.STOCK_MEDIA_PLAY, None, '<Ctrl>p', None, self.play),
              ('stop', gtk.STOCK_MEDIA_STOP, None, '<Ctrl>s', None, self.stop),
-             ('connect', gtk.STOCK_CONNECT, None, '<Ctrl>m', None, self.connect)
+             ('connect', gtk.STOCK_CONNECT, None, '<Ctrl>m', None, self.connected)
          ]+[
              ('playn%d'%(i+1), None, 'Play mic %d'%(i+1), None, None, self.playn) for i in range(self.nmics)
          ]
@@ -210,7 +210,7 @@ class MainWindow(gtk.Window):
         self.audiodir=False
         # Checking if jack up
         self.jack=self.check_jack()
-
+     
         # Variables
         gtk.Window.__init__(self)
         self.set_size_request(500, 400)
@@ -332,7 +332,7 @@ class MainWindow(gtk.Window):
 
         self.status_0()
 
-                
+       
         if filename:
             self.file_select_ok(None)
             self.prefix=os.path.splitext(os.path.basename(self.filename))[0]
@@ -361,6 +361,8 @@ class MainWindow(gtk.Window):
         self.actiongroup.get_action("play").set_sensitive(False)
         self.actiongroup.get_action("stop").set_sensitive(False)
         self.actiongroup.get_action("connect").set_sensitive(False)
+       
+        self.status_jack()
         for i in range(self.nmics):
             self.actiongroup.get_action("playn%d"%(i+1)).set_sensitive(False)
             
@@ -385,19 +387,24 @@ class MainWindow(gtk.Window):
             self.actiongroup.get_action("stop").set_sensitive(True)
             self.actiongroup.get_action("play").set_stock_id(gtk.STOCK_MEDIA_PLAY)
             self.actiongroup.get_action("record").set_stock_id(gtk.STOCK_MEDIA_RECORD)
-            if self.jack:
-                if self.monitor:
-                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_DISCONNECT)
-                else:
-                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_CONNECT)
-            else:
-                self.actiongroup.get_action("connect").set_sensitive(False)
-
+            self.status_jack()
             for i in range(self.nmics):
                 self.actiongroup.get_action("playn%d"%(i+1)).set_sensitive(True)
      
         else:
             self.status_0()
+
+    def status_jack(self):
+    	if self.jack:
+                self.actiongroup.get_action("connect").set_sensitive(True)
+                if self.connect:
+                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_DISCONNECT)
+                else:
+                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_CONNECT)
+        else:
+                self.actiongroup.get_action("connect").set_sensitive(False)
+
+
 
     def status_pause(self):
             '''Status for recording'''
@@ -416,13 +423,7 @@ class MainWindow(gtk.Window):
             self.actiongroup.get_action("play").set_sensitive(False)
             self.actiongroup.get_action("stop").set_sensitive(False)
             self.actiongroup.get_action("record").set_stock_id(gtk.STOCK_MEDIA_RECORD)
-            if self.jack:
-                if self.monitor:
-                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_DISCONNECT)
-                else:
-                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_CONNECT)
-            else:
-                self.actiongroup.get_action("connect").set_sensitive(False)
+            self.status_jack()
             for i in range(self.nmics):
                 self.actiongroup.get_action("playn%d"%(i+1)).set_sensitive(False)
  
@@ -444,13 +445,7 @@ class MainWindow(gtk.Window):
             self.actiongroup.get_action("play").set_sensitive(False)
             self.actiongroup.get_action("stop").set_sensitive(True)
             self.actiongroup.get_action("record").set_stock_id(gtk.STOCK_MEDIA_STOP)
-            if self.jack:
-                if self.monitor:
-                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_DISCONNECT)
-                else:
-                    self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_CONNECT)
-            else:
-                self.actiongroup.get_action("connect").set_sensitive(False)
+            self.status_jack()
             for i in range(self.nmics):
                 self.actiongroup.get_action("playn%d"%(i+1)).set_sensitive(False)
  
@@ -472,6 +467,8 @@ class MainWindow(gtk.Window):
             self.actiongroup.get_action("record").set_sensitive(False)
             self.actiongroup.get_action("stop").set_sensitive(True)
             self.actiongroup.get_action("play").set_stock_id(gtk.STOCK_MEDIA_STOP)
+            if self.connect:
+		self.connected()
             self.actiongroup.get_action("connect").set_sensitive(False)
             for i in range(self.nmics):
                 self.actiongroup.get_action("playn%d"%(i+1)).set_sensitive(True)
@@ -693,20 +690,21 @@ class MainWindow(gtk.Window):
         else:
             return False
 
-    def connect(self, event, data=None):
+    def connected(self, event, data=None):
         if self.jack:
             if self.connect:
                 p=Popen(['jack_disconnect','system:capture_1','system:playback_1'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
                 p=Popen(['jack_disconnect','system:capture_1','system:playback_2'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
-                self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_CONNECT)
+		self.connect=False
             else:
                 p=Popen(['jack_connect','system:capture_1','system:playback_1'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
                 p=Popen(['jack_connect','system:capture_1','system:playback_2'],stdout=PIPE,stderr=PIPE)
                 p.communicate()
-                self.actiongroup.get_action("connect").set_stock_id(gtk.STOCK_DISCONNECT)
+		self.connect=True
+	self.status_jack()
 
     def play(self, event, data=None):
         '''Start playing'''
@@ -721,7 +719,6 @@ class MainWindow(gtk.Window):
             else:
                     location="%s_%02d_mic%02d.wav"%(self.filename,self.utts_list[self.numUtt][0],self.monitor+1)
 
-            print ">>>>",self.outdir
             if self.outdir:
                 location="%s/%s/%s"%(self.outdir,self.prefix,location)
                 location=os.path.abspath(location)
